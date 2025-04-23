@@ -9,64 +9,69 @@
 import UIKit
 
 final class CountryInfoTableViewCell: UITableViewCell {
-    private lazy var nameAndRegionLabel: UILabel = {
-        return createStandardLabel(fontSize: 17, fontWeight: .regular, textAlignment: .natural)
-    }()
     
-    private lazy var codeLabel: UILabel = {
-        return createStandardLabel(fontSize: 17, fontWeight: .regular, textAlignment: .natural)
-    }()
+    private let nameAndRegionLabel = UILabel()
+    private let codeLabel = UILabel()
+    private let capitalLabel = UILabel()
     
-    private lazy var capitalLabel: UILabel = {
-        return createStandardLabel(fontSize: 17, fontWeight: .regular, textAlignment: .natural)
-    }()
+    private let horizontalTopStack = UIStackView()
+    private let verticalMainStack = UIStackView()
     
     override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
         super.init(style: style, reuseIdentifier: reuseIdentifier)
-        configureLabels()
+        setupUI()
     }
     
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
     
-    private func configureLabels() {
-        contentView.addSubview(nameAndRegionLabel)
-        contentView.addSubview(codeLabel)
-        contentView.addSubview(capitalLabel)
+    private func setupUI() {
+        [nameAndRegionLabel, codeLabel, capitalLabel].forEach {
+            $0.numberOfLines = 0
+        }
+
+        // Top horizontal stack: Name + Code
+        horizontalTopStack.axis = .horizontal
+        horizontalTopStack.spacing = 8
+        horizontalTopStack.distribution = .fillProportionally
+        horizontalTopStack.translatesAutoresizingMaskIntoConstraints = false
         
-        constrainLabels()
-    }
-    
-    private func createStandardLabel(fontSize: CGFloat, fontWeight: UIFont.Weight, textAlignment: NSTextAlignment) -> UILabel {
-        let targetLabel = UILabel()
-        targetLabel.textAlignment = textAlignment
-        targetLabel.font = UIFont.systemFont(ofSize: fontSize, weight: fontWeight)
-        targetLabel.numberOfLines = .zero
-        targetLabel.translatesAutoresizingMaskIntoConstraints = false
-        return targetLabel
-    }
-    
-    private func constrainLabels() {
+        nameAndRegionLabel.setContentHuggingPriority(.defaultLow, for: .horizontal)
+        codeLabel.setContentHuggingPriority(.required, for: .horizontal)
+        
+        horizontalTopStack.addArrangedSubview(nameAndRegionLabel)
+        horizontalTopStack.addArrangedSubview(codeLabel)
+
+        // Main vertical stack
+        verticalMainStack.axis = .vertical
+        verticalMainStack.spacing = 8
+        verticalMainStack.translatesAutoresizingMaskIntoConstraints = false
+        
+        verticalMainStack.addArrangedSubview(horizontalTopStack)
+        verticalMainStack.addArrangedSubview(capitalLabel)
+        
+        contentView.addSubview(verticalMainStack)
+        
         NSLayoutConstraint.activate([
-            nameAndRegionLabel.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 10),
-            nameAndRegionLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 15),
-            nameAndRegionLabel.trailingAnchor.constraint(equalTo: codeLabel.leadingAnchor, constant: -10),
-            codeLabel.topAnchor.constraint(equalTo: nameAndRegionLabel.topAnchor),
-            codeLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -10),
-            codeLabel.widthAnchor.constraint(equalTo: contentView.widthAnchor, multiplier: 0.15),
-            capitalLabel.topAnchor.constraint(equalTo: nameAndRegionLabel.bottomAnchor, constant: 10),
-            capitalLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 15),
-            capitalLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -10),
-            capitalLabel.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -10)
+            verticalMainStack.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 10),
+            verticalMainStack.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 15),
+            verticalMainStack.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -15),
+            verticalMainStack.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -10)
         ])
     }
-}
-
-extension CountryInfoTableViewCell {
+    
     func configureCell(nameAndRegion: String, code: String, capital: String) {
         nameAndRegionLabel.text = nameAndRegion
         codeLabel.text = code
         capitalLabel.text = capital
+    }
+    
+    static var reuseIdentifier: String {
+        String(describing: self)
+    }
+
+    static func register(in tableView: UITableView) {
+        tableView.register(CountryInfoTableViewCell.self, forCellReuseIdentifier: reuseIdentifier)
     }
 }

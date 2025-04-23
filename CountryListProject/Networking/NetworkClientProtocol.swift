@@ -13,7 +13,11 @@ protocol NetworkClientProtocol {
     associatedtype NetworkErrors
 }
 
-final class NetworkClient: NetworkClientProtocol {
+class NetworkClient: NetworkClientProtocol {
+    
+    static let shared = NetworkClient()
+    private init() {}
+    
     func genericFetch<T: Decodable>(endPoint: String, parseType: T.Type) async throws -> T {
         guard let url = URL(string: endPoint) else {
             throw NetworkErrors.invalidURL

@@ -10,27 +10,76 @@ import XCTest
 
 final class CountryListProjectTests: XCTestCase {
 
-    override func setUpWithError() throws {
-        // Put setup code here. This method is called before the invocation of each test method in the class.
+    private var mockCountryDisplayViewModel: CountryDisplayViewModel?
+    private var mockNetworkClient: any NetworkClientProtocol = MockNetworkClient()
+    
+    static let countriesCollection: [CountryModel] = [CountryModel(capital: "Tirana", code: "AL", currency: Currency(code: "ALL", name: "Albanian lek"), name: "Albania", region: "EU"), CountryModel(capital: "Pago Pago", code: "AS", currency: Currency(code: "USD", name: "United States Dollar"), name: "American Samoa", region: "OC")]
+    
+    @MainActor override func setUpWithError() throws {
+        super.setUp()
+        mockCountryDisplayViewModel = CountryDisplayViewModel(networkClient: mockNetworkClient)
     }
 
     override func tearDownWithError() throws {
-        // Put teardown code here. This method is called after the invocation of each test method in the class.
+        super.tearDown()
+        mockCountryDisplayViewModel = nil
     }
-
-    func testExample() throws {
-        // This is an example of a functional test case.
-        // Use XCTAssert and related functions to verify your tests produce the correct results.
-        // Any test you write for XCTest can be annotated as throws and async.
-        // Mark your test throws to produce an unexpected failure when your test encounters an uncaught error.
-        // Mark your test async to allow awaiting for asynchronous code to complete. Check the results with assertions afterwards.
-    }
-
-    func testPerformanceExample() throws {
-        // This is an example of a performance test case.
-        self.measure {
-            // Put the code you want to measure the time of here.
+    
+    @MainActor func testFetchCountries() async {
+        let expectation = expectation(description: "Expecting successful fetch of countries' information.")
+        Task {
+            do {
+                try await mockCountryDisplayViewModel?.fetchCountries()
+                XCTAssertEqual(mockCountryDisplayViewModel?.countries, Self.countriesCollection)
+                expectation.fulfill()
+            } catch {
+                XCTFail()
+            }
         }
+        await fulfillment(of: [expectation], timeout: 5)
     }
+    
+    @MainActor func testGenerateCapital() {
+        let targetCountry = Self.countriesCollection[0]
+        
+        let capitalOutput = mockCountryDisplayViewModel?.generateCapital(country: targetCountry)
+        XCTAssertEqual(capitalOutput, targetCountry.capital)
+    }
+    
+    @MainActor func testGenerateCode() {
+        let targetCountry = Self.countriesCollection[1]
+        let codeOuput = mockCountryDisplayViewModel?.generateCode(country: targetCountry)
+        XCTAssertEqual(codeOuput, targetCountry.code)
+    }
+    
+    @MainActor func testGenerateNameAndRegion() {
+        let targetCountry = Self.countriesCollection[0]
+        let expectedRegion = targetCountry.region
+        let expectedCountryName = targetCountry.name
+        
+        let nameAndRegionOutput = mockCountryDisplayViewModel?.generateNameAndRegion(country: targetCountry)
+        
+        XCTAssertEqual(nameAndRegionOutput, "\(expectedCountryName), \(expectedRegion)")
+    }
+    
+    @MainActor func testFilterCountriesBySearchText() {
+        let searchText = "Po"
+        mockCountryDisplayViewModel?.filterCountriesBySearchText(searchBarText: searchText)
+        let qualifyingCountries = mockCountryDisplayViewModel?.filteredCountries
+        
+        XCTAssertEqual(qualifyingCountries?.count, 0)
+    }
+}
 
+fileprivate class MockNetworkClient: NetworkClientProtocol {
+    typealias NetworkErrors = NetworkClient.NetworkErrors
+    
+    func genericFetch<T>(endPoint: String, parseType: T.Type) async throws -> T where T: Decodable, T: Encodable {
+        try await Task.sleep(nanoseconds: 2000_000_000)
+        
+        guard let countriesCollection = CountryListProjectTests.countriesCollection as? T else {
+            throw NetworkErrors.invalidData
+        }
+        return countriesCollection
+    }
 }
